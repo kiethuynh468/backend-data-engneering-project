@@ -10,9 +10,9 @@ def get_tasks():
     return jsonify(123)
 
 @app.route('/vehicle', methods=['GET'])
-def get_vehicle_lists():
+def get_vehicle_lists(station_name):
     try:
-        query = f"SELECT ride_id, rideable_type FROM capitalbikeshare WHERE end_station_name = 'Hardy Rec Center' ALLOW FILTERING"
+        query = f"SELECT ride_id, rideable_type FROM capitalbikeshare WHERE end_station_name = '{station_name}' ALLOW FILTERING"
         rows = session.execute(query)
         vehicle_info_list = []
         for row in rows:
