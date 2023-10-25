@@ -1,10 +1,31 @@
-from app import app
+from cassandra.query import SimpleStatement
+from app import app, session, cluster
 from flask import jsonify, request
+from cassandra import ConsistencyLevel
+#from __init__ import cluster, session
 
 # Route to get ID
 @app.route('/getID', methods=['GET'])
 def get_tasks():
     return jsonify(123)
+
+@app.route('/vehicle', methods=['GET'])
+def get_vehicle_lists():
+    try:
+        query = f"SELECT ride_id, rideable_type FROM capitalbikeshare WHERE end_station_name = 'Hardy Rec Center' ALLOW FILTERING"
+        rows = session.execute(query)
+        vehicle_info_list = []
+        for row in rows:
+            vehicle_info = {
+                "ride_id": row.ride_id,
+                "rideable_type": row.rideable_type
+            }
+            vehicle_info_list.append(vehicle_info)
+        return jsonify(vehicle_info_list)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
 
 # # Route to create a new task
 # @app.route('/tasks', methods=['POST'])
