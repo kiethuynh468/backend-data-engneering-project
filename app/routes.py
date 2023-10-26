@@ -7,6 +7,7 @@ from app import function as func
 def get_tasks():
     return jsonify(123)
 
+# Route to get information about stations
 @app.route('/vehicle/<station_name>', methods=['GET'])
 def get_vehicle_lists(station_name):
     try:
@@ -25,6 +26,7 @@ def get_vehicle_lists(station_name):
         error_message = {"error": str(e)}
         return jsonify(error_message)
 
+# Route to add new vehicle
 @app.route('/vehicle/add', methods=['POST'])
 def insert_new_vehicle():
     try:
@@ -48,6 +50,7 @@ def insert_new_vehicle():
         error_message = {"error": str(e)}
         return jsonify(error_message)
 
+# Route to update vehicle already exists
 @app.route('/vehicle/update', methods=['POST'])
 def update_vehicle():
     try:
