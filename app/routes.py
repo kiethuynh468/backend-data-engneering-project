@@ -9,7 +9,7 @@ from cassandra import ConsistencyLevel
 def get_tasks():
     return jsonify(123)
 
-@app.route('/vehicle', methods=['GET'])
+@app.route('/vehicle/<station_name>', methods=['GET'])
 def get_vehicle_lists(station_name):
     try:
         query = f"SELECT ride_id, rideable_type FROM capitalbikeshare WHERE end_station_name = '{station_name}' ALLOW FILTERING"
