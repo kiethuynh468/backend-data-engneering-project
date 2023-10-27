@@ -26,6 +26,18 @@ def get_station_id(station_name):
         print(f"Error: {str(e)}")
         return str(e)
 
+def get_bike_day(day):
+    try:
+        tomorrow = day + datetime.timedelta(days=1)
+        day = day.strftime('%Y-%m-%d %H:%M:%S.%f%z')
+        tomorrow = tomorrow.strftime('%Y-%m-%d %H:%M:%S.%f%z')
+        query = f"SELECT ride_id, started_at FROM capitalbikeshare WHERE started_at >= '{day}' AND started_at < '{tomorrow}' ALLOW FILTERING"
+        rows = session.execute(query)
+        return rows
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return str(e)
+
 def find_week_start_end(week_number, year):
     first_day = datetime.date(year, 1, 1)
     day_of_week = first_day.weekday()
