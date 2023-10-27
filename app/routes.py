@@ -115,6 +115,38 @@ def get_number_bike_of_week(week_number, year):
         error_message = {"error": str(e)}
         return jsonify(error_message)
 
+# Route to get number of bike in stations in time range
+@app.route('/statistic/station', methods=['GET'])
+def count_rides_by_start_station():
+    try:
+        # test data
+        start_time = datetime.datetime(2023, 7, 1, 0, 0, 0)
+        end_time = datetime.datetime(2023, 7, 7, 23, 59, 59)
+        # ----------
+        start_time = start_time.strftime('%Y-%m-%d %H:%M:%S')
+        end_time = end_time.strftime('%Y-%m-%d %H:%M:%S')
+        query = f"SELECT start_station_name FROM capitalbikeshare WHERE started_at >= '{start_time}' AND started_at <= '{end_time}' ALLOW FILTERING"
+        rows = session.execute(query)
+        station_counts = {}
+        for row in rows:
+            start_station_name = row.start_station_name
+            if start_station_name in station_counts:
+                station_counts[start_station_name] += 1
+            else:
+                station_counts[start_station_name] = 1
+        station_info_list = []
+        for station_name, count in station_counts.items():
+            station_info = {
+                "station_name": station_name,
+                "number_of_bike": count
+            }
+            station_info_list.append(station_info)
+        return jsonify(station_info_list)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
+
 # # Route to create a new task
 # @app.route('/tasks', methods=['POST'])
 # def create_task():
