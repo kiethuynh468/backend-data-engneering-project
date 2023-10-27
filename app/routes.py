@@ -1,6 +1,7 @@
 from app import app, session
 from flask import jsonify, request
 from app import function as func
+import datetime
 
 # Route to get ID
 @app.route('/getID', methods=['GET'])
@@ -83,6 +84,32 @@ def update_vehicle():
                        f"WHERE ride_id = '{ride_id}'"
         session.execute(update_query)
         return jsonify('OK')
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
+
+# Route to get number of bike in week of year
+@app.route('/statistic/week/<week_number>/<year>', methods=['GET'])
+def get_number_bike_of_week(week_number, year):
+    try:
+        week_bike_info_list = []
+        week_number = int(week_number)
+        year = int(year)
+        start_date, end_date = func.find_week_start_end(week_number, year)
+        current_date = start_date
+        while current_date <= end_date:
+            number_of_bike = 0
+            rows = func.get_bike_day(current_date)
+            for row in rows:
+                number_of_bike = number_of_bike + 1
+            week_bike = {
+                "date": current_date,
+                "number_of_bike": number_of_bike
+            }
+            week_bike_info_list.append(week_bike)
+            current_date += datetime.timedelta(days=1)
+        return jsonify(week_bike_info_list)
     except Exception as e:
         print(f"Error: {str(e)}")
         error_message = {"error": str(e)}
