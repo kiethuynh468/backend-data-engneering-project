@@ -38,6 +38,13 @@ def get_bike_day(day):
         print(f"Error: {str(e)}")
         return str(e)
 
+def ride_id_is_exist(ride_id):
+    query = f"SELECT * FROM capitalbikeshare WHERE ride_id = '{ride_id}'"
+    rows = session.execute(query)
+    if rows:
+        return True
+    return False
+
 def find_week_start_end(week_number, year):
     first_day = datetime.date(year, 1, 1)
     day_of_week = first_day.weekday()

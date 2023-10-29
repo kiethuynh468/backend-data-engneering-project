@@ -43,9 +43,11 @@ def insert_new_vehicle():
         member_casual = data.get('member_casual')
 
         add_query = f"INSERT INTO capitalbikeshare (ride_id, rideable_type, started_at, start_station_name, start_station_id, start_lat, start_lng, member_casual) VALUES ('{ride_id}', '{rideable_type}', '{started_at}', '{start_station_name}', '{start_station_id}', '{start_lat}', '{start_lng}', '{member_casual}')"
-
         session.execute(add_query)
-        return jsonify('OK')
+
+        if func.ride_id_is_exist(ride_id) == True:
+            return jsonify('OK')
+        return jsonify('error: ADD FAIL!')
     except Exception as e:
         print(f"Error: {str(e)}")
         error_message = {"error": str(e)}
@@ -147,6 +149,23 @@ def count_rides_by_start_station():
         error_message = {"error": str(e)}
         return jsonify(error_message)
 
+@app.route('/vehicle/delete', methods=['POST'])
+def delete_vehicle():
+    try:
+        data = request.json
+
+        ride_id = data.get('ride_id')
+
+        query = f"DELETE FROM your_table WHERE ride_id = '{ride_id}'"
+        session.execute(query)
+
+        if func.ride_id_is_exist(ride_id) == False:
+            return jsonify('OK')
+        return jsonify('error: DELETE FAIL!')
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
 # # Route to create a new task
 # @app.route('/tasks', methods=['POST'])
 # def create_task():
