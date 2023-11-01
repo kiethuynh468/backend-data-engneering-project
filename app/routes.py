@@ -195,26 +195,41 @@ def get_unique_station_list():
         error_message = {"error": str(e)}
         return jsonify(error_message)
     
-@app.route('/station/<station_name>/<day1>_<month1>_<year1>/<day2>_<month2>_<year2>/',methods=['GET'])
+@app.route('/station/<station_id>/<day1>_<month1>_<year1>/<day2>_<month2>_<year2>/',methods=['GET'])
 # @app.route('/station/<station_name>/',methods=['GET'])
 # def get_number_vehicle_in_time_range(station_name):
-def get_number_vehicle_in_time_range(station_name,day1,month1,year1,day2,month2,year2):
+def get_number_vehicle_in_time_range(station_id,day1,month1,year1,day2,month2,year2):
     try:
+        station_id = str(station_id)
         start_time = datetime.datetime(int(year1), int(month1), int(day1), 0, 0, 0)
-        end_time = datetime.datetime(int(year2), int(month2), int(day2), 23, 59, 59)
+        end_time = datetime.datetime(int(year2), int(month2), int(day2), 0, 0, 0)
         # start_time = datetime.datetime(2023, 3, 1, 0, 0, 0)
         # end_time = datetime.datetime(2023, 3, 7, 23, 59, 59)
         start_time = start_time.strftime('%Y-%m-%d %H:%M:%S')
         end_time = end_time.strftime('%Y-%m-%d %H:%M:%S')
-        query = f"SELECT end_station_name,ended_at FROM capitalbikeshare WHERE end_station_name = '{station_name.replace('_',' ')}' AND ended_at >= '{start_time}' AND ended_at <= '{end_time}' ALLOW FILTERING"
-        rows = session.execute(query)
-        vehicle_info_list = []
-        for row in rows:
-            vehicle_info = {
-                "ended_at": row.ended_at
-            }
-            vehicle_info_list.append(vehicle_info)
-        return jsonify(vehicle_info_list)
+        query1 = f"SELECT end_station_id,ride_id FROM capitalbikeshare WHERE ended_at >= '{start_time}' AND ended_at <= '{end_time}' ALLOW FILTERING"
+        rows1 = session.execute(query1)
+        dict_end = {}
+        for row in rows1:
+            if row.end_station_id in dict_end:
+                dict_end[row.end_station_id].append(row.ride_id)
+            else:
+                dict_end[row.end_station_id] = []
+        query2 = f"SELECT start_station_id,ride_id FROM capitalbikeshare WHERE started_at >= '{start_time}' AND started_at <= '{end_time}' ALLOW FILTERING"
+        rows2 = session.execute(query2)
+        dict_start = {}
+        for row in rows2:
+            if row.start_station_id in dict_start:
+                dict_start[row.start_station_id].append(row.ride_id)
+            else:
+                dict_start[row.start_station_id] = []
+        num_dict = {}
+        for key in dict_end:
+            if key in dict_start:
+                num_dict[key] = len(list(set(dict_end[key]) - set(dict_start[key])))
+            else:
+                num_dict[key] = len(dict_end[key])
+        return jsonify(num_dict)
     except Exception as e:
         print(f"Error: {str(e)}")
         error_message = {"error": str(e)}
@@ -236,6 +251,27 @@ def get_vehicle_history(id_vehicle):
             }
             vehicle_info_list.append(vehicle_info)
         return jsonify(vehicle_info_list)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
+    
+@app.route('/report/<month1>_<year1>/<month2>_<year2>/',methods=['GET'])
+def get_report(month1,year1,month2,year2):
+    try:
+        start_time = datetime.datetime(int(year1), int(month1), 1, 0, 0, 0)
+        end_time = datetime.datetime(int(year2), int(month2), 1, 0, 0, 0)
+        start_time = start_time.strftime('%Y-%m-%d %H:%M:%S')
+        end_time = end_time.strftime('%Y-%m-%d %H:%M:%S')
+        query = f"SELECT end_station_name FROM capitalbikeshare WHERE started_at >= '{start_time}' AND started_at <= '{end_time}' ALLOW FILTERING"
+        rows = session.execute(query)
+        res = {}
+        for row in rows:
+            if row.end_station_name in res:
+                res[row.end_station_name] += 1
+            else:
+                res[row.end_station_name] = 1
+        return jsonify(res)
     except Exception as e:
         print(f"Error: {str(e)}")
         error_message = {"error": str(e)}
