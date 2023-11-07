@@ -104,8 +104,9 @@ def get_number_bike_of_week(week_number, year):
         while current_date <= end_date:
             number_of_bike = 0
             rows = func.get_bike_day(current_date)
-            for row in rows:
-                number_of_bike = number_of_bike + 1
+            number_of_bike = len(list(rows))
+            #for row in rows:
+                #number_of_bike = number_of_bike + 1
             week_bike = {
                 "date": current_date,
                 "number_of_bike": number_of_bike
