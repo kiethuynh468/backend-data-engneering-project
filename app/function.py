@@ -1,7 +1,5 @@
 from app import session
 import datetime
-from cassandra.query import SimpleStatement
-from cassandra import ConsistencyLevel
 
 def get_station_name():
     try:
@@ -33,7 +31,7 @@ def get_bike_day(day):
         tomorrow = day + datetime.timedelta(days=1)
         day = day.strftime('%Y-%m-%d 00:00:00')
         tomorrow = tomorrow.strftime('%Y-%m-%d 00:00:00')
-        query = f"SELECT ride_id, started_at FROM capitalbikeshare WHERE started_at >= '{day}' AND started_at < '{tomorrow}' LIMIT 10000 ALLOW FILTERING;"
+        query = f"SELECT ride_id, started_at FROM capitalbikeshare WHERE started_at >= '{day}' AND started_at < '{tomorrow}' ALLOW FILTERING"
         rows = session.execute(query)
         return rows
     except Exception as e:
@@ -55,3 +53,19 @@ def find_week_start_end(week_number, year):
     start_of_desired_week = start_of_week + datetime.timedelta(weeks=week_number)
     end_of_desired_week = start_of_desired_week + datetime.timedelta(days=6)
     return start_of_desired_week, end_of_desired_week
+
+def authenticate_user(user_name, password):
+    # Prepare the query to retrieve the password based on user_name
+    query = f"SELECT password FROM your_keyspace_name.user WHERE user_name = '{user_name}' ALLOW FILTERING"
+    try:
+        # Execute the query
+        result = session.execute(query)
+        # Check if the result is not empty and compare the password
+        if result:
+            stored_password = result.one().password
+            return stored_password == password
+        else:
+            return False
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return False
