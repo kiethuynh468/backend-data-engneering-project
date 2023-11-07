@@ -1,5 +1,7 @@
 from app import session
 import datetime
+from cassandra.query import SimpleStatement
+from cassandra import ConsistencyLevel
 
 def get_station_name():
     try:
@@ -29,9 +31,9 @@ def get_station_id(station_name):
 def get_bike_day(day):
     try:
         tomorrow = day + datetime.timedelta(days=1)
-        day = day.strftime('%Y-%m-%d %H:%M:%S.%f%z')
-        tomorrow = tomorrow.strftime('%Y-%m-%d %H:%M:%S.%f%z')
-        query = f"SELECT ride_id, started_at FROM capitalbikeshare WHERE started_at >= '{day}' AND started_at < '{tomorrow}' ALLOW FILTERING"
+        day = day.strftime('%Y-%m-%d 00:00:00')
+        tomorrow = tomorrow.strftime('%Y-%m-%d 00:00:00')
+        query = f"SELECT ride_id, started_at FROM capitalbikeshare WHERE started_at >= '{day}' AND started_at < '{tomorrow}' LIMIT 10000 ALLOW FILTERING;"
         rows = session.execute(query)
         return rows
     except Exception as e:
