@@ -12,7 +12,7 @@ def get_tasks():
 @app.route('/vehicle/<station_name>', methods=['GET'])
 def get_vehicle_lists(station_name):
     try:
-        query = f"SELECT ride_id, rideable_type FROM capitalbikeshare WHERE start_station_name = '{station_name}' ALLOW FILTERING"
+        query = f"SELECT ride_id, rideable_type FROM capitalbikeshare WHERE end_station_name = '{station_name}' ALLOW FILTERING"
         rows = session.execute(query)
         vehicle_info_list = []
         for row in rows:
