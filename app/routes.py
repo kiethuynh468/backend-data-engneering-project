@@ -2,7 +2,6 @@ from app import app, session
 from flask import jsonify, request
 from app import function as func
 import datetime
-import numpy as np
 
 # Route to get ID
 @app.route('/getID', methods=['GET'])
@@ -13,7 +12,7 @@ def get_tasks():
 @app.route('/vehicle', methods=['GET'])
 def get_vehicle_lists():
     try:
-        data = request.json
+        data = request.args
         station_name = data.get('station_name')
 
         query = f"SELECT ride_id, rideable_type FROM capitalbikeshare WHERE end_station_name = '{station_name}' ALLOW FILTERING"
@@ -35,7 +34,7 @@ def get_vehicle_lists():
 @app.route('/vehicle/add', methods=['POST'])
 def insert_new_vehicle():
     try:
-        data = request.json
+        data = request.args
 
         ride_id = data.get('ride_id')
         rideable_type = data.get('rideable_type')
@@ -61,7 +60,7 @@ def insert_new_vehicle():
 @app.route('/vehicle/update', methods=['POST'])
 def update_vehicle():
     try:
-        data = request.json
+        data = request.args
 
         ride_id = data.get('ride_id')
         rideable_type = data.get('rideable_type')
@@ -99,9 +98,9 @@ def update_vehicle():
 @app.route('/statistic/week', methods=['GET'])
 def get_number_bike_of_week():
     try:
-        data = request.json
-        week_number = data.get('week_number')
-        year = data.get('year')
+        data = request.args
+        week_number = data.get("week_number")
+        year = data.get("year")
 
         week_bike_info_list = []
         week_number = int(week_number)
@@ -128,15 +127,15 @@ def get_number_bike_of_week():
 @app.route('/statistic/station', methods=['GET'])
 def count_rides_by_start_station():
     try:
-        data = request.json
+        data = request.args
 
-        start_time_day = data.get('start_time_day')
-        start_time_month = data.get('start_time_month')
-        start_time_year = data.get('start_time_year')
+        start_time_day = int(data.get('start_time_day'))
+        start_time_month = int(data.get('start_time_month'))
+        start_time_year = int(data.get('start_time_year'))
 
-        end_time_day = data.get('end_time_day')
-        end_time_month = data.get('end_time_month')
-        end_time_year = data.get('end_time_year')
+        end_time_day = int(data.get('end_time_day'))
+        end_time_month = int(data.get('end_time_month'))
+        end_time_year = int(data.get('end_time_year'))
 
         # test data
         start_time = datetime.datetime(start_time_year, start_time_month, start_time_day, 0, 0, 0)
@@ -169,7 +168,7 @@ def count_rides_by_start_station():
 @app.route('/vehicle/delete', methods=['POST'])
 def delete_vehicle():
     try:
-        data = request.json
+        data = request.args
 
         ride_id = data.get('ride_id')
 
