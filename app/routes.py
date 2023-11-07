@@ -10,9 +10,12 @@ def get_tasks():
     return jsonify(123)
 
 # Route to get information about stations
-@app.route('/vehicle/<station_name>', methods=['GET'])
-def get_vehicle_lists(station_name):
+@app.route('/vehicle', methods=['GET'])
+def get_vehicle_lists():
     try:
+        data = request.json
+        station_name = data.get('station_name')
+
         query = f"SELECT ride_id, rideable_type FROM capitalbikeshare WHERE end_station_name = '{station_name}' ALLOW FILTERING"
         rows = session.execute(query)
         vehicle_info_list = []
@@ -93,9 +96,13 @@ def update_vehicle():
         return jsonify(error_message)
 
 # Route to get number of bike in week of year
-@app.route('/statistic/week/<week_number>/<year>', methods=['GET'])
-def get_number_bike_of_week(week_number, year):
+@app.route('/statistic/week', methods=['GET'])
+def get_number_bike_of_week():
     try:
+        data = request.json
+        week_number = data.get('week_number')
+        year = data.get('year')
+
         week_bike_info_list = []
         week_number = int(week_number)
         year = int(year)
@@ -105,8 +112,6 @@ def get_number_bike_of_week(week_number, year):
             number_of_bike = 0
             rows = func.get_bike_day(current_date)
             number_of_bike = len(list(rows))
-            #for row in rows:
-                #number_of_bike = number_of_bike + 1
             week_bike = {
                 "date": current_date,
                 "number_of_bike": number_of_bike
@@ -123,9 +128,19 @@ def get_number_bike_of_week(week_number, year):
 @app.route('/statistic/station', methods=['GET'])
 def count_rides_by_start_station():
     try:
+        data = request.json
+
+        start_time_day = data.get('start_time_day')
+        start_time_month = data.get('start_time_month')
+        start_time_year = data.get('start_time_year')
+
+        end_time_day = data.get('end_time_day')
+        end_time_month = data.get('end_time_month')
+        end_time_year = data.get('end_time_year')
+
         # test data
-        start_time = datetime.datetime(2023, 7, 1, 0, 0, 0)
-        end_time = datetime.datetime(2023, 7, 7, 23, 59, 59)
+        start_time = datetime.datetime(start_time_year, start_time_month, start_time_day, 0, 0, 0)
+        end_time = datetime.datetime(end_time_year, end_time_month, end_time_day, 23, 59, 59)
         # ----------
         start_time = start_time.strftime('%Y-%m-%d %H:%M:%S')
         end_time = end_time.strftime('%Y-%m-%d %H:%M:%S')
