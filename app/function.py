@@ -3,11 +3,12 @@ import datetime
 
 def get_station_name():
     try:
-        query = f"SELECT start_station_name FROM capitalbikeshare ALLOW FILTERING"
+        query = f"SELECT end_station_name, start_station_name FROM capitalbikeshare ALLOW FILTERING"
         rows = session.execute(query)
         station_name = set()
         for row in rows:
             station_name.add(row.start_station_name)
+            station_name.add(row.end_station_name)
         station_name = list(station_name)
         return station_name
     except Exception as e:
