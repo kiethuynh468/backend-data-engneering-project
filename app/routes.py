@@ -46,6 +46,9 @@ def insert_new_vehicle():
         member_casual = data.get('member_casual')
         bike_number = data.get('bike_number')
 
+        if func.ride_id_is_exist(ride_id) == True:
+            return jsonify('ride_id is already exist!')
+
         add_query = f"INSERT INTO capitalbikeshare (ride_id, rideable_type, started_at, start_station_name, start_station_id, start_lat, start_lng, member_casual, bike_number) VALUES ('{ride_id}', '{rideable_type}', '{started_at}', '{start_station_name}', '{start_station_id}', '{start_lat}', '{start_lng}', '{member_casual}', '{bike_number}')"
         session.execute(add_query)
 
@@ -128,7 +131,7 @@ def get_number_bike_of_week():
 
 # Route to get number of bike in stations in time range
 @app.route('/statistic/station', methods=['GET'])
-def count_rides_by_start_station():
+def count_rides_by_end_station():
     try:
         data = request.args
 
@@ -146,15 +149,15 @@ def count_rides_by_start_station():
         # ----------
         start_time = start_time.strftime('%Y-%m-%d %H:%M:%S')
         end_time = end_time.strftime('%Y-%m-%d %H:%M:%S')
-        query = f"SELECT start_station_name FROM capitalbikeshare WHERE started_at >= '{start_time}' AND started_at <= '{end_time}' ALLOW FILTERING"
+        query = f"SELECT end_station_name FROM capitalbikeshare WHERE started_at >= '{start_time}' AND started_at < '{end_time}' ALLOW FILTERING"
         rows = session.execute(query)
         station_counts = {}
         for row in rows:
-            start_station_name = row.start_station_name
-            if start_station_name in station_counts:
-                station_counts[start_station_name] += 1
+            end_station_name = row.end_station_name
+            if end_station_name in station_counts:
+                station_counts[end_station_name] += 1
             else:
-                station_counts[start_station_name] = 1
+                station_counts[end_station_name] = 1
         station_info_list = []
         for station_name, count in station_counts.items():
             station_info = {
@@ -175,7 +178,10 @@ def delete_vehicle():
 
         ride_id = data.get('ride_id')
 
-        query = f"DELETE FROM your_table WHERE ride_id = '{ride_id}'"
+        if func.ride_id_is_exist(ride_id) == False:
+            return jsonify('error: ride_id not exist!')
+
+        query = f"DELETE FROM capitalbikeshare WHERE ride_id = '{ride_id}'"
         session.execute(query)
 
         if func.ride_id_is_exist(ride_id) == False:
