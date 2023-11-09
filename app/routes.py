@@ -44,8 +44,9 @@ def insert_new_vehicle():
         start_lat = float(data.get('start_lat')) if data.get('start_lat') else None
         start_lng = float(data.get('start_lng')) if data.get('start_lng') else None
         member_casual = data.get('member_casual')
+        bike_number = data.get('bike_number')
 
-        add_query = f"INSERT INTO capitalbikeshare (ride_id, rideable_type, started_at, start_station_name, start_station_id, start_lat, start_lng, member_casual) VALUES ('{ride_id}', '{rideable_type}', '{started_at}', '{start_station_name}', '{start_station_id}', '{start_lat}', '{start_lng}', '{member_casual}')"
+        add_query = f"INSERT INTO capitalbikeshare (ride_id, rideable_type, started_at, start_station_name, start_station_id, start_lat, start_lng, member_casual, bike_number) VALUES ('{ride_id}', '{rideable_type}', '{started_at}', '{start_station_name}', '{start_station_id}', '{start_lat}', '{start_lng}', '{member_casual}', '{bike_number}')"
         session.execute(add_query)
 
         if func.ride_id_is_exist(ride_id) == True:
@@ -74,6 +75,7 @@ def update_vehicle():
         end_lat = float(data.get('end_lat')) if data.get('end_lat') else None
         end_lng = float(data.get('end_lng')) if data.get('end_lng') else None
         member_casual = data.get('member_casual')
+        bike_number = data.get('bike_number')
 
         update_query = f"UPDATE capitalbikeshare SET rideable_type = '{rideable_type}', " \
                        f"started_at = '{started_at}', " \
@@ -85,7 +87,8 @@ def update_vehicle():
                        f"start_lng = {start_lng}, " \
                        f"end_lat = {end_lat}, " \
                        f"end_lng = {end_lng}, " \
-                       f"member_casual = '{member_casual}' " \
+                       f"member_casual = '{member_casual}', " \
+                       f"bike_number = '{bike_number}' " \
                        f"WHERE ride_id = '{ride_id}'"
         session.execute(update_query)
         return jsonify('OK')
