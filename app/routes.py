@@ -2,6 +2,7 @@ from app import app, session
 from flask import jsonify, request
 from app import function as func
 import datetime
+from tqdm import tqdm
 
 # Route to get ID
 @app.route('/getID', methods=['GET'])
@@ -195,77 +196,94 @@ def delete_vehicle():
 @app.route('/station',methods=['GET'])
 def get_unique_station_list():
     try:
-        query = f"SELECT start_station_name FROM capitalbikeshare"
-        rows = session.execute(query)
-        station_list = []
-        k = 0
-        for row in rows:
-            k += 1
-            print(k)
-            station_name = row.start_station_name
-            if (station_name.replace(" ","_") not in station_list) and (len(station_name) > 0):
-                station_list.append(station_name.replace(" ","_"))
-        query = f"SELECT end_station_name FROM capitalbikeshare"
-        rows = session.execute(query)
-        for row in rows:
-            k -= 1
-            print(k)
-            station_name = row.end_station_name
-            if (station_name.replace(" ","_") not in station_list) and (len(station_name) > 0):
-                station_list.append(station_name.replace(" ","_"))
+        query_all = f"""
+            SELECT DISTINCT station_id
+            FROM stationbikeshare
+        """
+
+        rows_all = session.execute(query_all)
+        print('Query done')
+        # Extracting start and end stations
+        rows_all_ids = []
+        for row in tqdm(rows_all):
+            rows_all_ids.append(row.station_id)
+        
+
+        # Extracting unique stations
+        station_list = list(set(rows_all_ids))
+
         return jsonify(station_list)
     except Exception as e:
         print(f"Error: {str(e)}")
         error_message = {"error": str(e)}
         return jsonify(error_message)
     
-@app.route('/station/<station_id>/<day1>_<month1>_<year1>/<day2>_<month2>_<year2>/',methods=['GET'])
-# @app.route('/station/<station_name>/',methods=['GET'])
-# def get_number_vehicle_in_time_range(station_name):
-def get_number_vehicle_in_time_range(station_id,day1,month1,year1,day2,month2,year2):
+@app.route('/station_report/',methods=['GET'])
+def get_number_vehicle_in_time_range():
     try:
-        station_id = str(station_id)
+        data = request.args
+        day1 = int(data.get('day1'))
+        month1 = int(data.get('month1'))
+        year1 = int(data.get('year1'))
+
+        day2 = int(data.get('day2'))
+        month2 = int(data.get('month2'))
+        year2 = int(data.get('year2'))
+
         start_time = datetime.datetime(int(year1), int(month1), int(day1), 0, 0, 0)
         end_time = datetime.datetime(int(year2), int(month2), int(day2), 0, 0, 0)
-        # start_time = datetime.datetime(2023, 3, 1, 0, 0, 0)
-        # end_time = datetime.datetime(2023, 3, 7, 23, 59, 59)
+
         start_time = start_time.strftime('%Y-%m-%d %H:%M:%S')
         end_time = end_time.strftime('%Y-%m-%d %H:%M:%S')
         query1 = f"SELECT end_station_id,ride_id FROM capitalbikeshare WHERE ended_at >= '{start_time}' AND ended_at <= '{end_time}' ALLOW FILTERING"
         rows1 = session.execute(query1)
+        
+        query2 = f"SELECT start_station_id,ride_id FROM capitalbikeshare WHERE started_at >= '{start_time}' AND started_at <= '{end_time}' ALLOW FILTERING"
+        rows2 = session.execute(query2)
+        print('Query done')
         dict_end = {}
-        for row in rows1:
+        for row in tqdm(rows1):
             if row.end_station_id in dict_end:
                 dict_end[row.end_station_id].append(row.ride_id)
             else:
                 dict_end[row.end_station_id] = []
-        query2 = f"SELECT start_station_id,ride_id FROM capitalbikeshare WHERE started_at >= '{start_time}' AND started_at <= '{end_time}' ALLOW FILTERING"
-        rows2 = session.execute(query2)
+
         dict_start = {}
-        for row in rows2:
+        for row in tqdm(rows2):
             if row.start_station_id in dict_start:
                 dict_start[row.start_station_id].append(row.ride_id)
             else:
                 dict_start[row.start_station_id] = []
-        num_dict = {}
+        dict_stay = {}
         for key in dict_end:
             if key in dict_start:
-                num_dict[key] = len(list(set(dict_end[key]) - set(dict_start[key])))
+                dict_stay[key] = len(list(set(dict_end[key]) - set(dict_start[key])))
             else:
-                num_dict[key] = len(dict_end[key])
-        return jsonify(num_dict)
+                dict_stay[key] = len(dict_end[key])
+        for key in dict_start:
+            dict_start[key] = len(dict_start[key])
+        for key in dict_end:
+            dict_end[key] = len(dict_end[key])
+        dict_all = {}
+        dict_all['start'] = dict_start
+        dict_all['end'] = dict_end
+        dict_all['stay'] = dict_stay
+        return jsonify(dict_all)
     except Exception as e:
         print(f"Error: {str(e)}")
         error_message = {"error": str(e)}
         return jsonify(error_message)
 
-@app.route('/history/<id_vehicle>/',methods=['GET'])
-def get_vehicle_history(id_vehicle):
+@app.route('/history/',methods=['GET'])
+def get_vehicle_history():
     try:
-        query = f"SELECT started_at,ended_at,start_station_name,end_station_name FROM capitalbikeshare WHERE ride_id = '{id_vehicle}' ALLOW FILTERING"
+        data = request.args
+        id_vehicle = data.get('id_vehicle')
+        query = f"SELECT started_at,ended_at,start_station_name,end_station_name FROM capitalbikeshare WHERE bike_number = '{id_vehicle}' ALLOW FILTERING"
         rows = session.execute(query)
         vehicle_info_list = []
-        for row in rows:
+        print('Query done')
+        for row in tqdm(rows):
             vehicle_info = {
                 "id_vehicle": id_vehicle,
                 "started_at": row.started_at,
@@ -275,27 +293,6 @@ def get_vehicle_history(id_vehicle):
             }
             vehicle_info_list.append(vehicle_info)
         return jsonify(vehicle_info_list)
-    except Exception as e:
-        print(f"Error: {str(e)}")
-        error_message = {"error": str(e)}
-        return jsonify(error_message)
-    
-@app.route('/report/<month1>_<year1>/<month2>_<year2>/',methods=['GET'])
-def get_report(month1,year1,month2,year2):
-    try:
-        start_time = datetime.datetime(int(year1), int(month1), 1, 0, 0, 0)
-        end_time = datetime.datetime(int(year2), int(month2), 1, 0, 0, 0)
-        start_time = start_time.strftime('%Y-%m-%d %H:%M:%S')
-        end_time = end_time.strftime('%Y-%m-%d %H:%M:%S')
-        query = f"SELECT end_station_name FROM capitalbikeshare WHERE started_at >= '{start_time}' AND started_at <= '{end_time}' ALLOW FILTERING"
-        rows = session.execute(query)
-        res = {}
-        for row in rows:
-            if row.end_station_name in res:
-                res[row.end_station_name] += 1
-            else:
-                res[row.end_station_name] = 1
-        return jsonify(res)
     except Exception as e:
         print(f"Error: {str(e)}")
         error_message = {"error": str(e)}
