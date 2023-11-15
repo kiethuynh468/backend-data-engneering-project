@@ -103,7 +103,7 @@ def update_vehicle():
 
 # Route to get number of bike in week of year
 @app.route('/statistic/week', methods=['GET'])
-def get_number_bike_of_week():
+def get_number_bike_of_3_week():
     try:
         data = request.args
         week_number = data.get("week_number")
@@ -116,10 +116,15 @@ def get_number_bike_of_week():
         current_date = start_date
         while current_date <= end_date:
             number_of_bike = 0
-            rows = func.get_bike_day(current_date)
-            number_of_bike = len(list(rows))
+            diff_date = current_date
+            for i in range(3):
+                print(diff_date)
+                rows = func.get_bike_day(diff_date)
+                diff_date = diff_date + datetime.timedelta(days=7)
+                number_of_bike += len(list(rows))
+                print(number_of_bike)
             week_bike = {
-                "date": current_date,
+                "date": current_date.strftime("%A"),
                 "number_of_bike": number_of_bike
             }
             week_bike_info_list.append(week_bike)
