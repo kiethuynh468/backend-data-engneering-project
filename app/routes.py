@@ -48,7 +48,7 @@ def insert_new_vehicle():
         bike_number = data.get('bike_number')
 
         if func.ride_id_is_exist(ride_id) == True:
-            return jsonify('ride_id is already exist!')
+            return jsonify('error: ID is already exist!')
 
         add_query = f"INSERT INTO capitalbikeshare (ride_id, rideable_type, started_at, start_station_name, start_station_id, start_lat, start_lng, member_casual, bike_number) VALUES ('{ride_id}', '{rideable_type}', '{started_at}', '{start_station_name}', '{start_station_id}', '{start_lat}', '{start_lng}', '{member_casual}', '{bike_number}')"
         session.execute(add_query)
@@ -193,6 +193,42 @@ def delete_vehicle():
         if func.ride_id_is_exist(ride_id) == False:
             return jsonify('OK')
         return jsonify('error: DELETE FAIL!')
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
+
+@app.route('/station/add', methods=['POST'])
+def add_station():
+    try:
+        data = request.args
+
+        station_id = data.get('station_id')
+        station_name = data.get('station_name')
+        city = data.get('city')
+        country = data.get('country')
+
+        query = f"INSERT INTO stationbikeshare (station_id, station_name, city, country) VALUES ('{station_id}', '{station_name}', '{city}', '{country}')"
+        session.execute(query)
+        return jsonify('OK')
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
+
+@app.route('/station/update', methods=['POST'])
+def update_station():
+    try:
+        data = request.args
+
+        station_id = data.get('station_id')
+        station_name = data.get('station_name')
+        city = data.get('city')
+        country = data.get('country')
+
+        query = f"UPDATE stationbikeshare SET station_name = '{station_name}', city = '{city}', country = '{country}' WHERE station_id = '{station_id}'"
+        session.execute(query)
+        return jsonify('OK')
     except Exception as e:
         print(f"Error: {str(e)}")
         error_message = {"error": str(e)}
