@@ -3,6 +3,8 @@ from flask import jsonify, request
 from app import function as func
 import datetime
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import os
 
 # Route to get ID
 @app.route('/getID', methods=['GET'])
@@ -238,7 +240,7 @@ def update_station():
 def get_unique_station_list():
     try:
         query_all = f"""
-            SELECT DISTINCT station_id
+            SELECT station_name,city,country
             FROM stationbikeshare
         """
 
@@ -247,13 +249,16 @@ def get_unique_station_list():
         # Extracting start and end stations
         rows_all_ids = []
         for row in tqdm(rows_all):
-            rows_all_ids.append(row.station_id)
+            station_info = {}
+            station_info['station_name'] = row.station_name
+            station_info['city'] = row.city
+            station_info['country'] = row.country
+
+            rows_all_ids.append(station_info)
         
 
-        # Extracting unique stations
-        station_list = list(set(rows_all_ids))
 
-        return jsonify(station_list)
+        return jsonify(rows_all_ids)
     except Exception as e:
         print(f"Error: {str(e)}")
         error_message = {"error": str(e)}
@@ -263,52 +268,47 @@ def get_unique_station_list():
 def get_number_vehicle_in_time_range():
     try:
         data = request.args
-        day1 = int(data.get('day1'))
-        month1 = int(data.get('month1'))
-        year1 = int(data.get('year1'))
-
-        day2 = int(data.get('day2'))
-        month2 = int(data.get('month2'))
-        year2 = int(data.get('year2'))
-
-        start_time = datetime.datetime(int(year1), int(month1), int(day1), 0, 0, 0)
-        end_time = datetime.datetime(int(year2), int(month2), int(day2), 0, 0, 0)
-
-        start_time = start_time.strftime('%Y-%m-%d %H:%M:%S')
-        end_time = end_time.strftime('%Y-%m-%d %H:%M:%S')
-        query1 = f"SELECT end_station_id,ride_id FROM capitalbikeshare WHERE ended_at >= '{start_time}' AND ended_at <= '{end_time}' ALLOW FILTERING"
-        rows1 = session.execute(query1)
-        
-        query2 = f"SELECT start_station_id,ride_id FROM capitalbikeshare WHERE started_at >= '{start_time}' AND started_at <= '{end_time}' ALLOW FILTERING"
-        rows2 = session.execute(query2)
+        month = int(data.get('month'))
+        year = int(data.get('year'))
+        start_time = datetime.datetime(int(year), int(month), 1, 0, 0, 0)
+        end_time = datetime.datetime(int(year), int(month)+1, 1, 0, 0, 0)
+        query = f"SELECT start_station_name FROM capitalbikeshare WHERE started_at >= '{start_time}' AND ended_at < '{end_time}' ALLOW FILTERING"
+        rows = session.execute(query)
         print('Query done')
-        dict_end = {}
-        for row in tqdm(rows1):
-            if row.end_station_id in dict_end:
-                dict_end[row.end_station_id].append(row.ride_id)
-            else:
-                dict_end[row.end_station_id] = []
-
-        dict_start = {}
-        for row in tqdm(rows2):
-            if row.start_station_id in dict_start:
-                dict_start[row.start_station_id].append(row.ride_id)
-            else:
-                dict_start[row.start_station_id] = []
-        dict_stay = {}
-        for key in dict_end:
-            if key in dict_start:
-                dict_stay[key] = len(list(set(dict_end[key]) - set(dict_start[key])))
-            else:
-                dict_stay[key] = len(dict_end[key])
-        for key in dict_start:
-            dict_start[key] = len(dict_start[key])
-        for key in dict_end:
-            dict_end[key] = len(dict_end[key])
         dict_all = {}
-        dict_all['start'] = dict_start
-        dict_all['end'] = dict_end
-        dict_all['stay'] = dict_stay
+        for row in tqdm(rows):
+            if row.start_station_name not in dict_all:
+                dict_all[row.start_station_name] = 1
+            else:
+                dict_all[row.start_station_name] += 1
+
+        del dict_all['']
+        # Sort dict by value and draw chart with top 20 most and least popular stations, then save to pdf
+        dict_top = dict(sorted(dict_all.items(), key=lambda item: item[1], reverse=True))
+        dict_bot = dict(sorted(dict_all.items(), key=lambda item: item[1], reverse=False))
+
+        # Draw chart
+        # plt.figure(figsize=(10, 10))
+        # plt.barh(list(dict_top.keys())[:20], list(dict_top.values())[:20])
+        plt.rcParams.update({'figure.autolayout': True})
+        fig, ax = plt.subplots()
+        ax.barh(list(dict_top.keys())[:20][::-1], list(dict_top.values())[:20][::-1])
+        labels = ax.get_xticklabels()
+        plt.setp(labels, rotation=45, horizontalalignment='right')
+        plt.title('Top 20 most popular stations')
+        plt.savefig('top_20_most_popular_stations.pdf',format='pdf')
+
+        plt.rcParams.update({'figure.autolayout': True})
+        fig, ax = plt.subplots()
+        ax.barh(list(dict_bot.keys())[:20], list(dict_bot.values())[:20])
+        labels = ax.get_xticklabels()
+        # plt.figure(figsize=(10, 10))
+        # plt.barh(list(dict_bot.keys())[:20], list(dict_bot.values())[:20])
+        plt.title('Top 20 least popular stations')
+        plt.savefig('top_20_least_popular_stations.pdf',format='pdf')
+
+        print(os.getcwd())
+        
         return jsonify(dict_all)
     except Exception as e:
         print(f"Error: {str(e)}")
@@ -319,18 +319,26 @@ def get_number_vehicle_in_time_range():
 def get_vehicle_history():
     try:
         data = request.args
-        id_vehicle = data.get('id_vehicle')
-        query = f"SELECT started_at,ended_at,start_station_name,end_station_name FROM capitalbikeshare WHERE bike_number = '{id_vehicle}' ALLOW FILTERING"
+        id_vehicle = str(data.get('id_vehicle'))
+        month = int(data.get('month'))
+        year = int(data.get('year'))
+        start_time = datetime.datetime(int(year), int(month), 1, 0, 0, 0)
+        end_time = datetime.datetime(int(year), int(month)+1, 1, 0, 0, 0)
+        query = f"SELECT bike_number,start_station_name,end_station_name,started_at,ended_at FROM capitalbikeshare WHERE started_at >= '{start_time}' AND ended_at < '{end_time}' ALLOW FILTERING"
+        
         rows = session.execute(query)
         vehicle_info_list = []
         print('Query done')
         for row in tqdm(rows):
+            if row.bike_number != id_vehicle:
+                continue
+            # if True:
             vehicle_info = {
                 "id_vehicle": id_vehicle,
-                "started_at": row.started_at,
-                "ended_at": row.ended_at,
                 "start_station_name": row.start_station_name,
-                "end_station_name": row.end_station_name
+                "start_time": row.started_at,
+                "end_station_name": row.end_station_name,
+                "end_time": row.ended_at
             }
             vehicle_info_list.append(vehicle_info)
         return jsonify(vehicle_info_list)
