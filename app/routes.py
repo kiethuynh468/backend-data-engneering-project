@@ -288,8 +288,6 @@ def get_number_vehicle_in_time_range():
         dict_bot = dict(sorted(dict_all.items(), key=lambda item: item[1], reverse=False))
 
         # Draw chart
-        # plt.figure(figsize=(10, 10))
-        # plt.barh(list(dict_top.keys())[:20], list(dict_top.values())[:20])
         plt.rcParams.update({'figure.autolayout': True})
         fig, ax = plt.subplots()
         ax.barh(list(dict_top.keys())[:20][::-1], list(dict_top.values())[:20][::-1])
@@ -302,8 +300,6 @@ def get_number_vehicle_in_time_range():
         fig, ax = plt.subplots()
         ax.barh(list(dict_bot.keys())[:20], list(dict_bot.values())[:20])
         labels = ax.get_xticklabels()
-        # plt.figure(figsize=(10, 10))
-        # plt.barh(list(dict_bot.keys())[:20], list(dict_bot.values())[:20])
         plt.title('Top 20 least popular stations')
         plt.savefig('top_20_least_popular_stations.pdf',format='pdf')
 
@@ -342,6 +338,78 @@ def get_vehicle_history():
             }
             vehicle_info_list.append(vehicle_info)
         return jsonify(vehicle_info_list)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
+
+# Route to sign up
+@app.route('/signup', methods=['POST'])
+def signup():
+    try:
+        data = request.args
+
+        user_id = data.get('user_id')
+        user_name = data.get('user_name')
+        country = data.get('country')
+        sign_up_date = data.get('sign_up_date')
+        user_password = data.get('password')
+
+        query_username = f"SELECT user_name FROM userbikeshare"
+        rows = session.execute(query_username)
+        for row in rows:
+            if row.user_name == user_name:
+                print(row.user_name)
+                return jsonify('error: user_name is already exist!')
+
+        add_query = f"INSERT INTO userbikeshare (user_id, user_name, country, sign_up_date, user_password) VALUES ('{user_id}', '{user_name}', '{country}', '{sign_up_date}', '{user_password}')"
+        session.execute(add_query)
+
+        return jsonify('OK')
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
+
+# # Route to update user already exists
+# @app.route('/user/update', methods=['POST'])
+# def update_user():
+#     try:
+#         data = request.args
+
+#         user_id = data.get('user_id')
+#         user_name = data.get('user_name')
+#         country = data.get('country')
+#         sign_up_date = data.get('sign_up_date')
+
+#         update_query = f"UPDATE userbikeshare SET user_name = '{user_name}', country = '{country}', sign_up_date = '{sign_up_date}' WHERE user_id = '{user_id}'"
+#         session.execute(update_query)
+#         return jsonify('OK')
+#     except Exception as e:
+#         print(f"Error: {str(e)}")
+#         error_message = {"error": str(e)}
+#         return jsonify(error_message)
+    
+# Route to login
+@app.route('/login', methods=['POST'])
+def login():
+    try:
+        data = request.args
+
+        user_name = str(data.get('user_name'))
+        user_password = str(data.get('password'))
+
+        query = f"SELECT user_password FROM userbikeshare WHERE user_name = '{user_name}' ALLOW FILTERING"
+        rows = session.execute(query)
+        match_found = False
+        for row in rows:
+            if row.user_password == user_password:
+                match_found = True
+                break
+        if match_found == True:
+            return jsonify('OK')
+        else:
+            return jsonify('error: user_password is not correct!')
     except Exception as e:
         print(f"Error: {str(e)}")
         error_message = {"error": str(e)}
