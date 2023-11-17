@@ -55,9 +55,7 @@ def insert_new_vehicle():
         add_query = f"INSERT INTO capitalbikeshare (ride_id, rideable_type, started_at, start_station_name, start_station_id, start_lat, start_lng, member_casual, bike_number) VALUES ('{ride_id}', '{rideable_type}', '{started_at}', '{start_station_name}', '{start_station_id}', '{start_lat}', '{start_lng}', '{member_casual}', '{bike_number}')"
         session.execute(add_query)
 
-        if func.ride_id_is_exist(ride_id) == True:
-            return jsonify('OK')
-        return jsonify('error: ADD FAIL!')
+        return jsonify('OK')
     except Exception as e:
         print(f"Error: {str(e)}")
         error_message = {"error": str(e)}
@@ -192,9 +190,7 @@ def delete_vehicle():
         query = f"DELETE FROM capitalbikeshare WHERE ride_id = '{ride_id}'"
         session.execute(query)
 
-        if func.ride_id_is_exist(ride_id) == False:
-            return jsonify('OK')
-        return jsonify('error: DELETE FAIL!')
+        return jsonify('OK')
     except Exception as e:
         print(f"Error: {str(e)}")
         error_message = {"error": str(e)}
