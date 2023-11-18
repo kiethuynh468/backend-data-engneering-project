@@ -49,9 +49,6 @@ def insert_new_vehicle():
         member_casual = data.get('member_casual')
         bike_number = data.get('bike_number')
 
-        if func.ride_id_is_exist(ride_id) == True:
-            return jsonify('error: ID is already exist!')
-
         add_query = f"INSERT INTO capitalbikeshare (ride_id, rideable_type, started_at, start_station_name, start_station_id, start_lat, start_lng, member_casual, bike_number) VALUES ('{ride_id}', '{rideable_type}', '{started_at}', '{start_station_name}', '{start_station_id}', '{start_lat}', '{start_lng}', '{member_casual}', '{bike_number}')"
         session.execute(add_query)
 
