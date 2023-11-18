@@ -5,6 +5,9 @@ import datetime
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import os
+from cassandra.cluster import ResultSet
+import json
+
 
 # Route to get ID
 @app.route('/getID', methods=['GET'])
@@ -228,34 +231,6 @@ def update_station():
         print(f"Error: {str(e)}")
         error_message = {"error": str(e)}
         return jsonify(error_message)
-
-@app.route('/station',methods=['GET'])
-def get_unique_station_list():
-    try:
-        query_all = f"""
-            SELECT station_name,city,country
-            FROM stationbikeshare
-        """
-
-        rows_all = session.execute(query_all)
-        print('Query done')
-        # Extracting start and end stations
-        rows_all_ids = []
-        for row in tqdm(rows_all):
-            station_info = {}
-            station_info['station_name'] = row.station_name
-            station_info['city'] = row.city
-            station_info['country'] = row.country
-
-            rows_all_ids.append(station_info)
-        
-
-
-        return jsonify(rows_all_ids)
-    except Exception as e:
-        print(f"Error: {str(e)}")
-        error_message = {"error": str(e)}
-        return jsonify(error_message)
     
 @app.route('/station_report/',methods=['GET'])
 def get_number_vehicle_in_time_range():
@@ -387,12 +362,10 @@ def signup():
 @app.route('/login', methods=['POST'])
 def login():
     try:
-        data = request.args
-
-        user_name = str(data.get('user_name'))
-        user_password = str(data.get('password'))
-
-        query = f"SELECT user_password FROM userbikeshare WHERE user_name = '{user_name}' ALLOW FILTERING"
+        data = request.json
+        user_id = str(data.get('user_name'))
+        user_password = str(data.get('user_password'))
+        query = f"SELECT * FROM userbikeshare WHERE user_id = '{user_id}' ALLOW FILTERING"
         rows = session.execute(query)
         match_found = False
         for row in rows:
@@ -400,10 +373,269 @@ def login():
                 match_found = True
                 break
         if match_found == True:
-            return jsonify('OK')
+            return jsonify({
+                "isAuthenticated": True,
+                "data": func.json_format(rows),
+                "message": "Login successfully!"
+            })
         else:
-            return jsonify('error: user_password is not correct!')
+            return jsonify({
+                "isAuthenticated": False,
+                "message": "User name or password is not correct!"
+            })
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return jsonify({
+            "isAuthenticated": False,
+            "message": "User name or password is not correct!",
+            "error": str(e)
+        })
+
+@app.route('/history/bike', methods=['GET'])
+def get_bike_history():
+    try:
+        data = request.args
+        bike_number = str(data.get('bike_number'))
+        start_date = str(data.get('start_date'))
+        end_date = str(data.get('end_date'))
+        view_query = f"""
+            CREATE MATERIALIZED VIEW IF NOT EXISTS mykeyspace.bike_history AS
+            SELECT *
+            FROM capitalbikeshare
+            WHERE ride_id IS NOT NULL
+            AND bike_number IS NOT NULL
+            PRIMARY KEY (bike_number, ride_id);
+        """
+        query = f"""SELECT * FROM bike_history 
+        WHERE bike_number = '{bike_number}' 
+        AND ended_at >= '{start_date}' 
+        AND ended_at <= '{end_date}' ALLOW FILTERING;
+        """
+        session.execute(view_query)
+        rows: ResultSet = session.execute(query)
+        return func.json_format(rows)
     except Exception as e:
         print(f"Error: {str(e)}")
         error_message = {"error": str(e)}
         return jsonify(error_message)
+    
+
+@app.route('/history/user', methods=['GET'])
+def get_user_history():
+    try:
+        data = request.args
+        user_id = str(data.get('user_id'))
+        start_date = str(data.get('start_date'))
+        end_date = str(data.get('end_date'))
+        view_query = f"""
+            CREATE MATERIALIZED VIEW IF NOT EXISTS mykeyspace.user_history AS
+            SELECT *
+            FROM capitalbikeshare
+            WHERE ride_id IS NOT NULL
+            AND user_id IS NOT NULL
+            PRIMARY KEY (user_id, ride_id);
+        """
+        query = f"""SELECT * FROM user_history 
+        WHERE user_id = '{user_id}' 
+        AND ended_at >= '{start_date}' 
+        AND ended_at <= '{end_date}' ALLOW FILTERING;
+        """
+        session.execute(view_query)
+        rows: ResultSet = session.execute(query)
+        return func.json_format(rows)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
+    
+
+@app.route('/city', methods=['GET'])
+def get_city_lists():
+    try:
+        data = request.args
+        country = str(data.get('country'))
+        print(country)
+        query = f"SELECT city FROM stationbikeshare WHERE country='{country}' ALLOW FILTERING"
+        rows: ResultSet = session.execute(query)
+        city_name = set()
+        for row in rows:
+            city_name.add(row.city)
+        return json.dumps(list(city_name))
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
+
+
+@app.route('/station', methods=['GET'])
+def get_station_lists():
+    try:
+        data = request.args
+        city = data.get('city')
+        if city == "" or city is None:
+            query = f"SELECT * FROM stationbikeshare ALLOW FILTERING"
+            rows: ResultSet = session.execute(query)
+            return func.json_format(rows)
+        else:
+            query = f"SELECT station_id, station_name FROM stationbikeshare WHERE city='{city}' ALLOW FILTERING"
+            rows: ResultSet = session.execute(query)
+            station_name = set()
+            for row in rows:
+                station_name.add((row.station_id, row.station_name))
+            return json.dumps(list(station_name))
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
+    
+
+@app.route('/bike', methods=['GET'])
+def get_bike_lists():
+    try:
+        data = request.args
+        station_id = data.get('station_id')
+        query = f"SELECT * FROM bikeshare LIMIT 50"
+        rows: ResultSet = session.execute(query)
+        return func.json_format(rows)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
+    
+
+@app.route('/rideable_type_count', methods=['GET'])
+def get_rideable_type_count():
+    try:
+        create_view_query = """
+            CREATE MATERIALIZED VIEW IF NOT EXISTS mykeyspace.rideable_type_counts AS
+            SELECT ride_id, rideable_type
+            FROM capitalbikeshare
+            WHERE ride_id IS NOT NULL
+            AND rideable_type IS NOT NULL
+            PRIMARY KEY (rideable_type, ride_id)
+        """
+        query = """
+            SELECT rideable_type, COUNT(*) FROM rideable_type_counts GROUP BY rideable_type
+        """
+        session.execute(create_view_query)
+        rows: ResultSet = session.execute(query)
+        return func.json_format(rows)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
+    
+
+@app.route('/station_count_in_rides', methods=['GET'])
+def get_station_count_in_rides():
+    try:
+        create_view_query = """
+            CREATE MATERIALIZED VIEW IF NOT EXISTS mykeyspace.station_counts_in_rides AS
+            SELECT ride_id, start_station_id, start_station_name
+            FROM capitalbikeshare
+            WHERE ride_id IS NOT NULL
+            AND start_station_id IS NOT NULL
+            PRIMARY KEY (start_station_id, ride_id);
+        """
+        query = """
+            SELECT start_station_id, start_station_name, COUNT(*) FROM station_counts_in_rides GROUP BY start_station_id;
+        """
+        session.execute(create_view_query)
+        rows: ResultSet = session.execute(query)
+        return func.json_format(rows)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
+    
+
+@app.route('/station_count_in_country', methods=['GET'])
+def get_station_count_in_country():
+    try:
+        create_view_query = """
+            CREATE MATERIALIZED VIEW IF NOT EXISTS mykeyspace.station_counts_in_country AS
+            SELECT station_id, station_name, country
+            FROM stationbikeshare
+            WHERE station_id IS NOT NULL
+            AND country IS NOT NULL
+            PRIMARY KEY (country, station_id);
+        """
+        query = """
+            SELECT country, COUNT(*) FROM station_counts_in_country GROUP BY country;
+        """
+        session.execute(create_view_query)
+        rows: ResultSet = session.execute(query)
+        return func.json_format(rows)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
+    
+
+@app.route('/station_count_in_city', methods=['GET'])
+def get_station_count_in_city():
+    try:
+        create_view_query = """
+            CREATE MATERIALIZED VIEW IF NOT EXISTS mykeyspace.station_counts_in_city AS
+            SELECT station_id, station_name, city, country
+            FROM stationbikeshare
+            WHERE station_id IS NOT NULL
+            AND city IS NOT NULL
+            PRIMARY KEY (city, station_id);
+        """
+        query = """
+            SELECT city, country, COUNT(*) FROM station_counts_in_city GROUP BY city;
+        """
+        session.execute(create_view_query)
+        rows: ResultSet = session.execute(query)
+        return func.json_format(rows)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
+    
+
+@app.route('/bike_count_in_country', methods=['GET'])
+def get_bike_count_in_country():
+    try:
+        create_view_query = """
+            CREATE MATERIALIZED VIEW IF NOT EXISTS mykeyspace.bike_count_in_country AS
+            SELECT bike_number, rideable_type, country
+            FROM bikeshare
+            WHERE bike_number IS NOT NULL
+            AND country IS NOT NULL
+            PRIMARY KEY (country, bike_number);
+        """
+        query = """
+            SELECT country, COUNT(*) FROM bike_count_in_country GROUP BY country;
+        """
+        session.execute(create_view_query)
+        rows: ResultSet = session.execute(query)
+        return func.json_format(rows)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
+    
+@app.route('/user_count_in_country', methods=['GET'])
+def get_user_count_in_country():
+    try:
+        create_view_query = """
+            CREATE MATERIALIZED VIEW IF NOT EXISTS mykeyspace.user_count_in_country AS
+            SELECT user_id, user_name, country, sign_up_date
+            FROM userbikeshare
+            WHERE user_id IS NOT NULL
+            AND country IS NOT NULL
+            PRIMARY KEY (country, user_id);
+        """
+        query = """
+            SELECT country, COUNT(*) FROM user_count_in_country GROUP BY country;
+        """
+        session.execute(create_view_query)
+        rows: ResultSet = session.execute(query)
+        return func.json_format(rows)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        error_message = {"error": str(e)}
+        return jsonify(error_message)
+    

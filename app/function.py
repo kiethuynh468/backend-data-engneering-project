@@ -1,5 +1,15 @@
 from app import session
 import datetime
+from cassandra.cluster import ResultSet
+import json
+
+def serialize_datetime(obj):
+    if isinstance(obj, datetime.datetime):
+        return obj.isoformat()
+    raise TypeError("Type not serializable")
+
+def json_format(rows: ResultSet) -> json:
+    return json.dumps([dict(row._asdict()) for row in rows], default=serialize_datetime)
 
 def get_station_name():
     try:
