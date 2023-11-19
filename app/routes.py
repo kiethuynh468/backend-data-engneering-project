@@ -37,25 +37,33 @@ def get_vehicle_lists():
         return jsonify(error_message)
 
 # Route to add new vehicle
-@app.route('/vehicle/add', methods=['POST'])
+@app.route('/ride/add', methods=['POST'])
 def insert_new_vehicle():
     try:
-        data = request.args
+        data = request.json
 
-        ride_id = data.get('ride_id')
-        rideable_type = data.get('rideable_type')
-        started_at = data.get('started_at')
-        start_station_name = data.get('start_station_name')
-        start_station_id = func.get_station_id(start_station_name)
-        start_lat = float(data.get('start_lat')) if data.get('start_lat') else None
-        start_lng = float(data.get('start_lng')) if data.get('start_lng') else None
+        print(data)
+
+        ride_id = str(uuid.uuid4())
+        rideable_type = data.get('bike')['rideable_type']
+        started_at = data.get('start_date')
+        start_station_name = data.get('start_station')
+        start_station_id = data.get('start_station_id')
+        ended_at = data.get('end_date')
+        end_station_name = data.get('end_station')
+        end_station_id = data.get('end_station_id')
         member_casual = data.get('member_casual')
-        bike_number = data.get('bike_number')
+        bike_number = data.get('bike')['bike_number']
 
-        add_query = f"INSERT INTO capitalbikeshare (ride_id, rideable_type, started_at, start_station_name, start_station_id, start_lat, start_lng, member_casual, bike_number) VALUES ('{ride_id}', '{rideable_type}', '{started_at}', '{start_station_name}', '{start_station_id}', '{start_lat}', '{start_lng}', '{member_casual}', '{bike_number}')"
+        add_query = f"""INSERT INTO capitalbikeshare 
+        (ride_id, rideable_type, started_at, start_station_name, start_station_id, ended_at, end_station_name, end_station_id, member_casual, bike_number) VALUES 
+        ('{ride_id}', '{rideable_type}', '{started_at}', '{start_station_name}', '{start_station_id}', '{ended_at}', '{end_station_name}', '{end_station_id}','{member_casual}', '{bike_number}')"""
         session.execute(add_query)
 
-        return jsonify('OK')
+        return jsonify({
+            "result": True,
+            "message": "Completed recording the information of the bike rental!",
+        })
     except Exception as e:
         print(f"Error: {str(e)}")
         error_message = {"error": str(e)}
