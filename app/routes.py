@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import os
 from cassandra.cluster import ResultSet
 import json
+import uuid
 
 
 # Route to get ID
