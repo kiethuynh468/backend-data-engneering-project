@@ -19,6 +19,7 @@ def insert_new_vehicle():
         print(data)
 
         ride_id = str(uuid.uuid4())
+        print(ride_id)
         rideable_type = data.get('bike')['rideable_type']
         started_at = data.get('start_date')
         start_station_name = data.get('start_station')
@@ -28,10 +29,11 @@ def insert_new_vehicle():
         end_station_id = data.get('end_station_id')
         member_casual = data.get('member_casual')
         bike_number = data.get('bike')['bike_number']
+        user_id = data.get('user_id')
 
         add_query = f"""INSERT INTO capitalbikeshare 
-        (ride_id, rideable_type, started_at, start_station_name, start_station_id, ended_at, end_station_name, end_station_id, member_casual, bike_number) VALUES 
-        ('{ride_id}', '{rideable_type}', '{started_at}', '{start_station_name}', '{start_station_id}', '{ended_at}', '{end_station_name}', '{end_station_id}','{member_casual}', '{bike_number}')"""
+        (ride_id, rideable_type, started_at, start_station_name, start_station_id, ended_at, end_station_name, end_station_id, member_casual, bike_number, user_id) VALUES 
+        ('{ride_id}', '{rideable_type}', '{started_at}', '{start_station_name}', '{start_station_id}', '{ended_at}', '{end_station_name}', '{end_station_id}','{member_casual}', '{bike_number}', '{user_id}')"""
         session.execute(add_query)
 
         return jsonify({
